@@ -9,7 +9,7 @@ LexicalAnalyzer.o: LexicalAnalyzer.cpp
 		g++ $(OPTIONS) -c LexicalAnalyzer.cpp
 
 run:	my_prog
-		./my_prog
+		./my_prog prog.txt
 clean:
 		rm -rf *.o my_prog
 		rm -rf *.exe my_prog

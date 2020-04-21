@@ -222,6 +222,11 @@ Lex Scanner::get_lex()
                     buf.push_back(c);
                     CS = SLSH;
                 }
+				else if (c == '#')
+				{
+					buf.push_back(c);
+                    CS = COM3;
+				}
                 else if (c == '!' || c == '=')
                 {
                     buf.push_back(c);
