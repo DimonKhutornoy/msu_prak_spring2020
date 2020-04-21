@@ -1,10 +1,12 @@
+OPTIONS = -Wall -Werror
+
 all: my_prog
 	
 my_prog: LexicalAnalyzer.o
 		g++ -o my_prog LexicalAnalyzer.o
 
 LexicalAnalyzer.o: LexicalAnalyzer.cpp
-		g++ -c LexicalAnalyzer.cpp
+		g++ $(OPTIONS) -c LexicalAnalyzer.cpp
 
 run:	my_prog
 		./my_prog

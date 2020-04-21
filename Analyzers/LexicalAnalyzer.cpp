@@ -448,7 +448,7 @@ Lex Scanner::get_lex()
                 if (c == '"')
                 {
                     string res = "";
-                    for (int i = 0; i < buf.size(); i++)
+                    for (size_t i = 0; i < buf.size(); i++)
                     {
                         res += buf[i];
                     }
