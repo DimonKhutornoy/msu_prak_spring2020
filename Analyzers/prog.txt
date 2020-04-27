@@ -1,4 +1,13 @@
-Response.write("<body>")533
-# commet!!!
-#! /bin/sh
+var a;
+var b;
+var c;
+a = 4;
+b = 5 + 3;
+c = b;
+b = 3;
+a = 2 + b;
+while(a > 3)
+{
+	a = a - 1;
+}
 @
