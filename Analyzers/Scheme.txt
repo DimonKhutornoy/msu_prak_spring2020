@@ -1,0 +1,10 @@
+analyze -> S 
+S -> if (E) B | if (E) B else B | while (E) B | for (FOR_PARAMS; E; FOR_PARAMS) |
+do B while (E); | LEX_ID [=|-=|+=|*=|/=|%=] E | LEX_ID ++ | LEX_ID -- |
+continue; | break; | var D | LEX_FIN <return;> | LEX_END <return;> | [++ | --] E  | S
+E -> [++, --] F | E1 [==|<|>|<=|>=|!=] E1 | E1
+E1 -> T [+|-||] T | T
+T -> F [*|/|&|%] F | F
+F -> LEX_ID | LEX_NUM | true | false | LEX_STRING | not F | (E) | eps
+D -> , LEX_ID D | S 
+FOR_PARAMS -> LEX_ID [=|-=|+=|*=|/=|%=] E | LEX_ID ++ | LEX_ID --

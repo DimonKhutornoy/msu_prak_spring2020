@@ -1,13 +1,19 @@
 var a;
-var b;
-var c;
-a = 4;
-b = 5 + 3;
-c = b;
-b = 3;
-a = 2 + b;
-while(a > 3)
+a=3;
+a++;
+for (a=0; a<3; a=a+1)
 {
-	a = a - 1;
+	var b;
+	b+=1;
+	break;
+	a=1;
+}
+if (b==3)
+{
+	b=2;
+}
+else
+{
+	b++;
 }
 @
