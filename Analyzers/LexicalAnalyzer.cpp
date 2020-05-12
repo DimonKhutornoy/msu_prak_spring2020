@@ -540,7 +540,7 @@ ostream& operator<<(ostream& s, Lex l)
 
 template <class T, class T_EL>
 
-void from_st(T & st, T_EL& i)
+void from_st(T& st, T_EL& i)
 {
     i = st.top();
     st.pop();
@@ -554,8 +554,8 @@ class Parser
     Scanner scan;
     stack<int> st_int;
     stack<type_of_lex> st_lex;
-    stack <int> labels_for_con;
-    stack <int> labels_for_break;
+    stack<int> labels_for_con;
+    stack<int> labels_for_break;
     void S();
     void B();
     void D();
@@ -566,7 +566,7 @@ class Parser
     void FOR_PARAMETERS();
     void dec(type_of_lex type, int i);
     void check_id();
-    void eq_type(type_of_lex &);
+    void eq_type(type_of_lex&);
     void gl()
     {
         curr_lex = scan.get_lex();
@@ -577,24 +577,28 @@ class Parser
 
 public:
     vector<Lex> poliz;
-    Parser(const char* program): scan(program) {}
+    Parser(const char* program)
+        : scan(program)
+    {
+    }
     void analyze();
 };
 
 void Parser::analyze()
 {
     int num = 0;
+	cout<<"\nLEXEMS:\n\n";
     gl();
     S();
     if (c_type != LEX_FIN)
         throw curr_lex;
-    cout << "\n\nPOLIZ:\n\n";
+    cout << "\nPOLIZ:\n\n";
     for (Lex l : poliz)
     {
-        cout << num <<' '<< l;
+        cout << num << ' ' << l;
         num++;
     }
-	cout << "\nPOLIZ is OK!\n\n";
+    cout << "\nPOLIZ is OK!\n\n";
 }
 
 void Parser::S()
@@ -668,21 +672,21 @@ void Parser::S()
             labels_for_break.pop();
         }
     } // end while
-    else if (c_type == LEX_DO) 
+    else if (c_type == LEX_DO)
     {
         pl0 = poliz.size();
         gl();
         B();
         labels_for_con.push(poliz.size());
-        if (c_type == LEX_WHILE) 
+        if (c_type == LEX_WHILE)
         {
             gl();
-            if (c_type == LEX_LPAREN) 
+            if (c_type == LEX_LPAREN)
             {
                 gl();
                 E();
                 pl1 = poliz.size() + 4;
-                poliz.push_back(Lex(POLIZ_LABEL, pl1)); 
+                poliz.push_back(Lex(POLIZ_LABEL, pl1));
                 poliz.push_back(Lex(POLIZ_FGO));
                 poliz.push_back(Lex(POLIZ_LABEL, pl0));
                 poliz.push_back(Lex(POLIZ_GO));
@@ -701,16 +705,17 @@ void Parser::S()
             poliz[labels_for_break.top()] = Lex(POLIZ_LABEL, poliz.size());
             labels_for_break.pop();
         }
-    } //end do while
-    else if (c_type == LEX_FOR) 
+    } // end do while
+    else if (c_type == LEX_FOR)
     {
         gl();
-        if (c_type == LEX_LPAREN) 
+        if (c_type == LEX_LPAREN)
         {
             gl();
             FOR_PARAMETERS();
             pl0 = poliz.size();
-            if (c_type == LEX_SEMICOLON) {
+            if (c_type == LEX_SEMICOLON)
+            {
                 gl();
                 E();
                 poliz.push_back(Lex());
@@ -719,18 +724,20 @@ void Parser::S()
                 poliz.push_back(Lex(POLIZ_GO));
                 pl1 = poliz.size();
                 labels_for_con.push(poliz.size());
-                if (c_type == LEX_SEMICOLON) {
+                if (c_type == LEX_SEMICOLON)
+                {
                     gl();
                     FOR_PARAMETERS();
                     poliz.push_back(Lex(POLIZ_LABEL, pl0));
                     poliz.push_back(Lex(POLIZ_GO));
-                    poliz[pl1-2] = Lex(POLIZ_LABEL, poliz.size());
-                    if (c_type == LEX_RPAREN) {
+                    poliz[pl1 - 2] = Lex(POLIZ_LABEL, poliz.size());
+                    if (c_type == LEX_RPAREN)
+                    {
                         gl();
                         B();
                         poliz.push_back(Lex(POLIZ_LABEL, pl1));
                         poliz.push_back(Lex(POLIZ_GO));
-                        poliz[pl1-4] = Lex(POLIZ_LABEL, poliz.size());
+                        poliz[pl1 - 4] = Lex(POLIZ_LABEL, poliz.size());
                     }
                     else
                         throw curr_lex;
@@ -746,20 +753,21 @@ void Parser::S()
         }
         else
             throw curr_lex;
-    } //end for
+    } // end for
     else if (c_type == LEX_ID)
     {
-		int l_v_index = curr_lex.get_value();
+        int l_v_index = curr_lex.get_value();
         type_of_lex new_val;
         check_id();
         poliz.push_back(Lex(POLIZ_ADDRESS, c_val));
         gl();
-        if (c_type == LEX_EQ || c_type == LEX_MINUS_EQ || c_type == LEX_PLUS_EQ || c_type == LEX_TIMES_EQ || c_type == LEX_PERCENT_EQ || c_type == LEX_SLASH_EQ)
+        if (c_type == LEX_EQ || c_type == LEX_MINUS_EQ || c_type == LEX_PLUS_EQ
+            || c_type == LEX_TIMES_EQ || c_type == LEX_PERCENT_EQ || c_type == LEX_SLASH_EQ)
         {
             type_of_lex tmp = c_type;
             gl();
             E();
-			eq_type(new_val);
+            eq_type(new_val);
             TID[l_v_index].put_type(new_val);
             poliz.push_back(Lex(tmp));
             if (c_type == LEX_SEMICOLON)
@@ -869,10 +877,10 @@ void Parser::D()
         throw curr_lex;
     else
     {
-        st_int.push ( c_val );
+        st_int.push(c_val);
         int l_v_index = c_val;
         gl();
-        
+
         if (c_type == LEX_EQ)
         {
             poliz.push_back(Lex(POLIZ_ADDRESS, l_v_index));
@@ -887,8 +895,8 @@ void Parser::D()
         else
         {
             dec(LEX_UNDEFINED, l_v_index);
-        } 
-        
+        }
+
         while (c_type == LEX_COMMA)
         {
             gl();
@@ -896,10 +904,10 @@ void Parser::D()
                 throw curr_lex;
             else
             {
-                st_int.push ( c_val );
+                st_int.push(c_val);
                 int l_v_index = c_val;
                 gl();
-                
+
                 if (c_type == LEX_EQ)
                 {
                     poliz.push_back(Lex(POLIZ_ADDRESS, l_v_index));
@@ -914,7 +922,7 @@ void Parser::D()
                 else
                 {
                     dec(LEX_UNDEFINED, l_v_index);
-                } 
+                }
             }
         }
         if (c_type != LEX_SEMICOLON && c_type != LEX_FIN)
@@ -931,64 +939,66 @@ void Parser::E()
 {
     if (c_type == LEX_DPLUS)
     {
-		gl();
+        gl();
         int l_v_index = c_val;
-		if (c_type == LEX_ID)
-		{
-			check_id();
-			poliz.push_back(Lex(POLIZ_ADDRESS, l_v_index));
-		}
-		else
-		{
-			throw curr_lex;
-		}
-		poliz.push_back(Lex(POLIZ_LEFT_INC));
-		gl();
+        if (c_type == LEX_ID)
+        {
+            check_id();
+            poliz.push_back(Lex(POLIZ_ADDRESS, l_v_index));
+        }
+        else
+        {
+            throw curr_lex;
+        }
+        poliz.push_back(Lex(POLIZ_LEFT_INC));
+        gl();
     }
     else if (c_type == LEX_DMINUS)
     {
         gl();
         int l_v_index = c_val;
-		if (c_type == LEX_ID)
-		{
-			check_id();
-			poliz.push_back(Lex(POLIZ_ADDRESS, l_v_index));
-		}
-		else
-		{
-			throw curr_lex;
-		}
-		poliz.push_back(Lex(POLIZ_LEFT_DEC));
-		gl();
+        if (c_type == LEX_ID)
+        {
+            check_id();
+            poliz.push_back(Lex(POLIZ_ADDRESS, l_v_index));
+        }
+        else
+        {
+            throw curr_lex;
+        }
+        poliz.push_back(Lex(POLIZ_LEFT_DEC));
+        gl();
     }
     else
     {
         E1();
-        if (c_type == LEX_EQ || c_type == LEX_LSS || c_type == LEX_GTR || c_type == LEX_LEQ || c_type == LEX_GEQ || c_type == LEX_NEQ || c_type == LEX_DMINUS || c_type ==  LEX_DPLUS)
+        if (c_type == LEX_EQ || c_type == LEX_LSS || c_type == LEX_GTR || c_type == LEX_LEQ
+            || c_type == LEX_GEQ || c_type == LEX_NEQ || c_type == LEX_DMINUS
+            || c_type == LEX_DPLUS)
         {
-			type_of_lex op = c_type;
+            type_of_lex op = c_type;
             st_lex.push(c_type);
-			if (!(c_type == LEX_DMINUS || c_type ==  LEX_DPLUS))
-			{
-				gl();
-				E1();
-				poliz.push_back (Lex (op) );
-			}
-			else 
-			{
-				if (c_type == LEX_DMINUS)
-				{
-					poliz[poliz.size()-1].put_type(POLIZ_ADDRESS);
-					gl();
-					poliz.push_back (Lex (POLIZ_RIGHT_DEC) );
-				}
-				if (c_type == LEX_DPLUS)
-				{
-					poliz[poliz.size()-1].put_type(POLIZ_ADDRESS);
-					gl();
-					poliz.push_back (Lex (POLIZ_RIGHT_INC) );
-				}
-			}
+            if (!(c_type == LEX_DMINUS || c_type == LEX_DPLUS))
+            {
+                gl();
+                E1();
+                poliz.push_back(Lex(op));
+            }
+            else
+            {
+                if (c_type == LEX_DMINUS)
+                {
+                    poliz[poliz.size() - 1].put_type(POLIZ_ADDRESS);
+                    gl();
+                    poliz.push_back(Lex(POLIZ_RIGHT_DEC));
+                }
+                if (c_type == LEX_DPLUS)
+                {
+                    poliz[poliz.size() - 1].put_type(POLIZ_ADDRESS);
+                    gl();
+                    poliz.push_back(Lex(POLIZ_RIGHT_INC));
+                }
+            }
         }
     }
 }
@@ -998,24 +1008,25 @@ void Parser::E1()
     T();
     while (c_type == LEX_PLUS || c_type == LEX_MINUS || c_type == LEX_DPIPE)
     {
-		type_of_lex op = c_type;
+        type_of_lex op = c_type;
         st_lex.push(c_type);
         gl();
         T();
-		poliz.push_back (Lex (op) );
+        poliz.push_back(Lex(op));
     }
 }
 
 void Parser::T()
 {
     F();
-    while (c_type == LEX_TIMES || c_type == LEX_SLASH || c_type == LEX_DAMP || c_type == LEX_PERCENT)
+    while (
+        c_type == LEX_TIMES || c_type == LEX_SLASH || c_type == LEX_DAMP || c_type == LEX_PERCENT)
     {
-		type_of_lex op = c_type;
+        type_of_lex op = c_type;
         st_lex.push(c_type);
         gl();
         F();
-		poliz.push_back (Lex (op) );
+        poliz.push_back(Lex(op));
     }
 }
 
@@ -1071,17 +1082,17 @@ void Parser::F()
 
 void Parser::FOR_PARAMETERS()
 {
-	int l_v_index = curr_lex.get_value();
+    int l_v_index = curr_lex.get_value();
     type_of_lex new_val;
     check_id();
     poliz.push_back(Lex(POLIZ_ADDRESS, c_val));
     gl();
-    if (c_type == LEX_EQ || c_type == LEX_MINUS_EQ || c_type == LEX_PLUS_EQ ||
-        c_type == LEX_TIMES_EQ || c_type == LEX_PERCENT_EQ || c_type == LEX_SLASH_EQ)
+    if (c_type == LEX_EQ || c_type == LEX_MINUS_EQ || c_type == LEX_PLUS_EQ
+        || c_type == LEX_TIMES_EQ || c_type == LEX_PERCENT_EQ || c_type == LEX_SLASH_EQ)
     {
         gl();
         E();
-		eq_type(new_val);
+        eq_type(new_val);
         TID[l_v_index].put_type(new_val);
         poliz.push_back(Lex(LEX_EQ));
     }
@@ -1089,7 +1100,7 @@ void Parser::FOR_PARAMETERS()
     {
         poliz.push_back(Lex(POLIZ_RIGHT_INC));
         gl();
-        if (c_type!=LEX_SEMICOLON && c_type!=LEX_RPAREN)
+        if (c_type != LEX_SEMICOLON && c_type != LEX_RPAREN)
             throw curr_lex;
         if (c_type == LEX_SEMICOLON)
             gl();
@@ -1098,7 +1109,7 @@ void Parser::FOR_PARAMETERS()
     {
         poliz.push_back(Lex(POLIZ_RIGHT_DEC));
         gl();
-        if (c_type != LEX_SEMICOLON && c_type!=LEX_RPAREN)
+        if (c_type != LEX_SEMICOLON && c_type != LEX_RPAREN)
             throw curr_lex;
         if (c_type == LEX_SEMICOLON)
             gl();
@@ -1106,28 +1117,28 @@ void Parser::FOR_PARAMETERS()
     else
         throw curr_lex;
 }
-////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
 
-void Parser::dec ( type_of_lex type, int i ) 
+void Parser::dec(type_of_lex type, int i)
 {
-    if ( TID[i].get_declare() ) 
+    if (TID[i].get_declare())
         throw "twice";
-    else 
+    else
     {
         TID[i].put_declare();
         TID[i].put_type(type);
     }
 }
- 
-void Parser::check_id () 
+
+void Parser::check_id()
 {
-    if ( TID[c_val].get_declare() )
-        st_lex.push ( TID[c_val].get_type() );
-    else 
+    if (TID[c_val].get_declare())
+        st_lex.push(TID[c_val].get_type());
+    else
         throw "not declared";
 }
- 
-void Parser::eq_type (type_of_lex& new_val) 
+
+void Parser::eq_type(type_of_lex& new_val)
 {
     from_st(st_lex, new_val);
     if (new_val == LEX_UNDEFINED)
@@ -1136,131 +1147,65 @@ void Parser::eq_type (type_of_lex& new_val)
     }
 }
 
-////////////////////////////////////////////////////////////////
+///////////////////////////////класс Executer////////////////////////////////////
 
-class Executer {
+class Executer
+{
 public:
-    void execute ( vector<Lex> & poliz );
+    void execute(vector<Lex>& poliz);
 };
- 
-void Executer::execute ( vector<Lex> & poliz ) {
+
+void Executer::execute(vector<Lex>& poliz)
+{
     Lex pc_el;
-    stack < Lex > args;
+    stack<Lex> args;
     int i, index = 0, size = poliz.size(), j;
     Lex one, two;
-	stack <int> inc_st;
-	stack <int> dec_st;
-	int inc_dec_tmp;
-    while ( index < size ) 
+    stack<int> inc_st;
+    stack<int> dec_st;
+    int inc_dec_tmp;
+    while (index < size)
     {
-        pc_el = poliz [ index ];
-        switch ( pc_el.get_type () ) 
+        pc_el = poliz[index];
+        switch (pc_el.get_type())
         {
-            case LEX_TRUE: case LEX_FALSE: case LEX_NUM: case POLIZ_ADDRESS: case POLIZ_LABEL: case LEX_STR_CONST:
-                args.push ( pc_el );
+            case LEX_TRUE:
+            case LEX_FALSE:
+            case LEX_NUM:
+            case POLIZ_ADDRESS:
+            case POLIZ_LABEL:
+            case LEX_STR_CONST:
+                args.push(pc_el);
                 break;
- 
+
             case LEX_ID:
-                i = pc_el.get_value ();
-                if ( TID[i].get_assign () ) 
+                i = pc_el.get_value();
+                if (TID[i].get_assign())
                 {
-                    args.push (Lex(TID[i].get_type(), TID[i].get_value(), TID[i].get_str()));
+                    args.push(Lex(TID[i].get_type(), TID[i].get_value(), TID[i].get_str()));
                     break;
                 }
                 else
-                    throw "POLIZ: indefinite identifier";
- 
-            case LEX_NOT:
-                from_st(args,one);
-                if (one.get_type() == LEX_STR_CONST)
-                    throw "I can't make not with string";
-                else if (one.get_type() == LEX_NUM)
-                {
-                    int a = one.get_value();
-                    if (a == 0)
-                        one.put_type(LEX_TRUE);
-                    else one.put_type(LEX_FALSE);
-                }
-                else if (one.get_type() == POLIZ_ADDRESS || one.get_type() == POLIZ_LABEL)
-                    throw "NOT error";
-                else 
-                {
-                    if (one.get_type() == LEX_TRUE)
-                        one.put_type(LEX_FALSE);
-                    if (one.get_type() == LEX_FALSE)
-                        one.put_type(LEX_TRUE);
-                }
-                args.push( one );
-                break;
- 
-            case LEX_DPIPE:
-                from_st(args,one); 
-                from_st(args,two);
-                if (one.get_type() == LEX_NUM)
-                {
-                    if (one.get_value() > 0) j = 1;
-                    else j = 0;
-                }
-                else if (one.get_type() == LEX_TRUE) j = 1;
-                else if (one.get_type() == LEX_FALSE) j = 0;
-                else 
-                    throw "I can't make OR with this types";
-                if (two.get_type() == LEX_NUM)
-                {
-                    if (two.get_value() > 0) j++;
-                }
-                else if (two.get_type() == LEX_TRUE) j++;
-                else if (two.get_type() == LEX_FALSE);
-                else 
-                    throw "I can't make OR with this types";
-                if (j == 0)
-                    one.put_type(LEX_FALSE);
-                else one.put_type(LEX_TRUE);
-                args.push( one );
-                break;
- 
-            case LEX_DAMP:
-                from_st(args,one); 
-                from_st(args,two);
-                if (one.get_type() == LEX_NUM)
-                {
-                    if (one.get_value() > 0) j = 1;
-                    else j = 0;
-                }
-                else if (one.get_type() == LEX_TRUE) j = 1;
-                else if (one.get_type() == LEX_FALSE) j = 0;
-                else 
-                    throw "I can't make AND with this types";
-                if (two.get_type() == LEX_NUM)
-                {
-                    if (two.get_value() == 0) j = 0;
-                }
-                else if (two.get_type() == LEX_TRUE);
-                else if (two.get_type() == LEX_TRUE) j = 0;
-                else 
-                    throw "I can't make AND with this types";
-                if (j == 0)
-                    one.put_type(LEX_FALSE);
-                else one.put_type(LEX_TRUE);
-                args.push( one );
-                break;
- 
+                    throw "Identifier Error";
+
+
             case POLIZ_GO:
-                from_st(args,one);
+                from_st(args, one);
                 index = one.get_value() - 1;
                 break;
- 
+
             case POLIZ_FGO:
-                from_st(args,one);
-                from_st(args,two);
+                from_st(args, one);
+                from_st(args, two);
                 if (two.get_type() != LEX_TRUE && two.get_type() != LEX_FALSE)
                     throw "FGO error";
-                if ( two.get_type() == LEX_FALSE ) index = one.get_value() - 1;
+                if (two.get_type() == LEX_FALSE)
+                    index = one.get_value() - 1;
                 break;
- 
+
             case LEX_PLUS:
-                from_st(args,one);
-                from_st(args,two);
+                from_st(args, one);
+                from_st(args, two);
                 if (one.get_type() == LEX_TRUE)
                 {
                     one.put_value(1);
@@ -1291,17 +1236,17 @@ void Executer::execute ( vector<Lex> & poliz ) {
                     j = one.get_value() + two.get_value();
                     one.put_value(j);
                 }
-                else 
+                else
                     throw "PLUS error";
-                args.push ( one );
+                args.push(one);
                 break;
 
             case LEX_PLUS_EQ:
-                from_st(args,two);
-                from_st(args,one);
+                from_st(args, two);
+                from_st(args, one);
                 j = one.get_value();
-                if ( TID[j].get_assign() )
-                { 
+                if (TID[j].get_assign())
+                {
                     if (TID[j].get_type() == LEX_TRUE)
                     {
                         TID[j].put_value(1);
@@ -1330,27 +1275,29 @@ void Executer::execute ( vector<Lex> & poliz ) {
                     {
                         TID[j].put_value(TID[j].get_value() + two.get_value());
                     }
-                    else throw "PLEQ error 1";
+                    else
+                        throw "PLUS EQ error 1";
                 }
-                else throw "PLEQ error 2";
-				
-				while (!inc_st.empty())
-				{
-					inc_dec_tmp=inc_st.top();
-					inc_st.pop();
-					TID[inc_dec_tmp].put_value(TID[inc_dec_tmp].get_value()+1);
-				}
-				while (!dec_st.empty())
-				{
-					inc_dec_tmp=dec_st.top();
-					dec_st.pop();
-					TID[inc_dec_tmp].put_value(TID[inc_dec_tmp].get_value()-1);
-				}
+                else
+                    throw "PLUS EQ error 2";
+
+                while (!inc_st.empty())
+                {
+                    inc_dec_tmp = inc_st.top();
+                    inc_st.pop();
+                    TID[inc_dec_tmp].put_value(TID[inc_dec_tmp].get_value() + 1);
+                }
+                while (!dec_st.empty())
+                {
+                    inc_dec_tmp = dec_st.top();
+                    dec_st.pop();
+                    TID[inc_dec_tmp].put_value(TID[inc_dec_tmp].get_value() - 1);
+                }
                 break;
- 
+
             case LEX_TIMES:
-                from_st(args,one);
-                from_st(args,two);
+                from_st(args, one);
+                from_st(args, two);
                 if (one.get_type() == LEX_TRUE)
                 {
                     one.put_value(1);
@@ -1376,17 +1323,17 @@ void Executer::execute ( vector<Lex> & poliz ) {
                     int j = one.get_value() * two.get_value();
                     one.put_value(j);
                 }
-                else 
+                else
                     throw "TIMES error";
-                args.push ( one );
+                args.push(one);
                 break;
-                
+
             case LEX_TIMES_EQ:
-                from_st(args,two);
-                from_st(args,one);
+                from_st(args, two);
+                from_st(args, one);
                 j = one.get_value();
-                if ( TID[j].get_assign() )
-                { 
+                if (TID[j].get_assign())
+                {
                     if (TID[j].get_type() == LEX_TRUE)
                     {
                         TID[j].put_value(1);
@@ -1411,26 +1358,28 @@ void Executer::execute ( vector<Lex> & poliz ) {
                     {
                         TID[j].put_value(TID[j].get_value() * two.get_value());
                     }
-                    else throw "TIMEQ error 1";
+                    else
+                        throw "TIMES EQ error";
                 }
-                else throw "TIMEQ error 2";
-				while (!inc_st.empty())
-				{
-					inc_dec_tmp=inc_st.top();
-					inc_st.pop();
-					TID[inc_dec_tmp].put_value(TID[inc_dec_tmp].get_value()+1);
-				}
-				while (!dec_st.empty())
-				{
-					inc_dec_tmp=dec_st.top();
-					dec_st.pop();
-					TID[inc_dec_tmp].put_value(TID[inc_dec_tmp].get_value()-1);
-				}
+                else
+                    throw "TIMES EQ error";
+                while (!inc_st.empty())
+                {
+                    inc_dec_tmp = inc_st.top();
+                    inc_st.pop();
+                    TID[inc_dec_tmp].put_value(TID[inc_dec_tmp].get_value() + 1);
+                }
+                while (!dec_st.empty())
+                {
+                    inc_dec_tmp = dec_st.top();
+                    dec_st.pop();
+                    TID[inc_dec_tmp].put_value(TID[inc_dec_tmp].get_value() - 1);
+                }
                 break;
- 
+
             case LEX_MINUS:
-                from_st(args,one);
-                from_st(args,two);
+                from_st(args, one);
+                from_st(args, two);
                 if (one.get_type() == LEX_TRUE)
                 {
                     one.put_value(1);
@@ -1456,17 +1405,17 @@ void Executer::execute ( vector<Lex> & poliz ) {
                     int j = two.get_value() - one.get_value();
                     one.put_value(j);
                 }
-                else 
+                else
                     throw "MINUS error";
-                args.push ( one );
+                args.push(one);
                 break;
-                
+
             case LEX_MINUS_EQ:
-                from_st(args,two);
-                from_st(args,one);
+                from_st(args, two);
+                from_st(args, one);
                 j = one.get_value();
-                if ( TID[j].get_assign() )
-                { 
+                if (TID[j].get_assign())
+                {
                     if (TID[j].get_type() == LEX_TRUE)
                     {
                         TID[j].put_value(1);
@@ -1491,26 +1440,28 @@ void Executer::execute ( vector<Lex> & poliz ) {
                     {
                         TID[j].put_value(TID[j].get_value() - two.get_value());
                     }
-                    else throw "MINEQ error 1";
+                    else
+                        throw "MINUS EQ error";
                 }
-                else throw "MINEQ error 2";
-				while (!inc_st.empty())
-				{
-					inc_dec_tmp=inc_st.top();
-					inc_st.pop();
-					TID[inc_dec_tmp].put_value(TID[inc_dec_tmp].get_value()+1);
-				}
-				while (!dec_st.empty())
-				{
-					inc_dec_tmp=dec_st.top();
-					dec_st.pop();
-					TID[inc_dec_tmp].put_value(TID[inc_dec_tmp].get_value()-1);
-				}
+                else
+                    throw "MINUS EQ error";
+                while (!inc_st.empty())
+                {
+                    inc_dec_tmp = inc_st.top();
+                    inc_st.pop();
+                    TID[inc_dec_tmp].put_value(TID[inc_dec_tmp].get_value() + 1);
+                }
+                while (!dec_st.empty())
+                {
+                    inc_dec_tmp = dec_st.top();
+                    dec_st.pop();
+                    TID[inc_dec_tmp].put_value(TID[inc_dec_tmp].get_value() - 1);
+                }
                 break;
- 
+
             case LEX_SLASH:
-                from_st(args,two);
-                from_st(args,one);
+                from_st(args, two);
+                from_st(args, one);
                 if (one.get_type() == LEX_TRUE)
                 {
                     one.put_value(1);
@@ -1538,19 +1489,20 @@ void Executer::execute ( vector<Lex> & poliz ) {
                         int j = one.get_value() / two.get_value();
                         one.put_value(j);
                     }
-                    else throw "POLIZ:divide by zero";
+                    else
+                        throw "Divide by zero";
                 }
-                else 
+                else
                     throw "SLASH error";
-                args.push ( one );
+                args.push(one);
                 break;
-            
+
             case LEX_SLASH_EQ:
-                from_st(args,two);
-                from_st(args,one);
+                from_st(args, two);
+                from_st(args, one);
                 j = one.get_value();
-                if ( TID[j].get_assign() )
-                { 
+                if (TID[j].get_assign())
+                {
                     if (TID[j].get_type() == LEX_TRUE)
                     {
                         TID[j].put_value(1);
@@ -1575,28 +1527,31 @@ void Executer::execute ( vector<Lex> & poliz ) {
                     {
                         if (!one.get_value())
                             TID[j].put_value(TID[j].get_value() / two.get_value());
-                        else throw "POLIZ:divide by zero";
+                        else
+                            throw "Divide by zero";
                     }
-                    else throw "SLEQ error 1";
+                    else
+                        throw "SLASH EQ error";
                 }
-                else throw "SLEQ error 2";
-				while (!inc_st.empty())
-				{
-					inc_dec_tmp=inc_st.top();
-					inc_st.pop();
-					TID[inc_dec_tmp].put_value(TID[inc_dec_tmp].get_value()+1);
-				}
-				while (!dec_st.empty())
-				{
-					inc_dec_tmp=dec_st.top();
-					dec_st.pop();
-					TID[inc_dec_tmp].put_value(TID[inc_dec_tmp].get_value()-1);
-				}
+                else
+                    throw "SLASH EQ error";
+                while (!inc_st.empty())
+                {
+                    inc_dec_tmp = inc_st.top();
+                    inc_st.pop();
+                    TID[inc_dec_tmp].put_value(TID[inc_dec_tmp].get_value() + 1);
+                }
+                while (!dec_st.empty())
+                {
+                    inc_dec_tmp = dec_st.top();
+                    dec_st.pop();
+                    TID[inc_dec_tmp].put_value(TID[inc_dec_tmp].get_value() - 1);
+                }
                 break;
-                
+
             case LEX_PERCENT:
-                from_st(args,two);
-                from_st(args,one);
+                from_st(args, two);
+                from_st(args, one);
                 if (one.get_type() == LEX_TRUE)
                 {
                     one.put_value(1);
@@ -1624,19 +1579,20 @@ void Executer::execute ( vector<Lex> & poliz ) {
                         int j = one.get_value() % two.get_value();
                         one.put_value(j);
                     }
-                    else throw "POLIZ:divide by zero";
+                    else
+                        throw "Divide by zero";
                 }
-                else 
-                    throw "REM error";
-                args.push ( one );
+                else
+                    throw "Percent error";
+                args.push(one);
                 break;
-                
+
             case LEX_PERCENT_EQ:
-                from_st(args,two);
-                from_st(args,one);
+                from_st(args, two);
+                from_st(args, one);
                 j = one.get_value();
-                if ( TID[j].get_assign() )
-                { 
+                if (TID[j].get_assign())
+                {
                     if (TID[j].get_type() == LEX_TRUE)
                     {
                         TID[j].put_value(1);
@@ -1661,28 +1617,240 @@ void Executer::execute ( vector<Lex> & poliz ) {
                     {
                         if (!one.get_value())
                             TID[j].put_value(TID[j].get_value() % two.get_value());
-                        else throw "POLIZ:divide by zero";
+                        else
+                            throw "Divide by zero";
                     }
-                    else throw "REMEQ error 1";
+                    else
+                        throw "Percent EQ error";
                 }
-                else throw "REMEQ error 2";
-				while (!inc_st.empty())
-				{
-					inc_dec_tmp=inc_st.top();
-					inc_st.pop();
-					TID[inc_dec_tmp].put_value(TID[inc_dec_tmp].get_value()+1);
-				}
-				while (!dec_st.empty())
-				{
-					inc_dec_tmp=dec_st.top();
-					dec_st.pop();
-					TID[inc_dec_tmp].put_value(TID[inc_dec_tmp].get_value()-1);
-				}
+                else
+                    throw "Percent EQ error";
+                while (!inc_st.empty())
+                {
+                    inc_dec_tmp = inc_st.top();
+                    inc_st.pop();
+                    TID[inc_dec_tmp].put_value(TID[inc_dec_tmp].get_value() + 1);
+                }
+                while (!dec_st.empty())
+                {
+                    inc_dec_tmp = dec_st.top();
+                    dec_st.pop();
+                    TID[inc_dec_tmp].put_value(TID[inc_dec_tmp].get_value() - 1);
+                }
                 break;
- 
+
+
+            case LEX_EQ:
+                from_st(args, one);
+                from_st(args, two);
+                j = two.get_value();
+                if (one.get_type() == LEX_STR_CONST)
+                {
+                    TID[j].put_str(one.get_string());
+                    TID[j].put_type(LEX_STR_CONST);
+                }
+                else if (one.get_type() == LEX_NUM)
+                {
+                    TID[j].put_value(one.get_value());
+                    TID[j].put_type(LEX_NUM);
+                }
+                else if (one.get_type() == LEX_TRUE)
+                    TID[j].put_type(LEX_TRUE);
+                else if (one.get_type() == LEX_FALSE)
+                    TID[j].put_type(LEX_FALSE);
+                TID[j].put_assign();
+                while (!inc_st.empty())
+                {
+                    inc_dec_tmp = inc_st.top();
+                    inc_st.pop();
+                    TID[inc_dec_tmp].put_value(TID[inc_dec_tmp].get_value() + 1);
+                }
+                while (!dec_st.empty())
+                {
+                    inc_dec_tmp = dec_st.top();
+                    dec_st.pop();
+                    TID[inc_dec_tmp].put_value(TID[inc_dec_tmp].get_value() - 1);
+                }
+                break;
+
+            case POLIZ_LEFT_INC:
+                from_st(args, one);
+                if (one.get_type() != POLIZ_ADDRESS)
+                    throw "LEFT INK error";
+                j = one.get_value();
+                if (TID[j].get_assign())
+                {
+                    if (TID[j].get_type() == LEX_NUM)
+                    {
+
+                        int k = TID[j].get_value();
+                        TID[j].put_value(k + 1);
+                        args.push(Lex(LEX_NUM, k + 1, pc_el.get_string()));
+                    }
+                }
+                else
+                {
+                    throw "LEFT INK error";
+                }
+                break;
+
+            case POLIZ_RIGHT_INC:
+                from_st(args, one);
+                if (one.get_type() != POLIZ_ADDRESS)
+                    throw "RIGHT INK error";
+                j = one.get_value();
+                if (TID[j].get_assign())
+                {
+                    if (TID[j].get_type() == LEX_NUM)
+                    {
+                        int k;
+                        args.push(Lex(LEX_NUM, k = TID[j].get_value(), pc_el.get_string()));
+                        inc_st.push(j);
+                        // TID[j].put_value(k + 1);
+                    }
+                }
+                else
+                {
+                    throw "RIGHT INK error";
+                }
+                break;
+
+            case POLIZ_LEFT_DEC:
+                from_st(args, one);
+                if (one.get_type() != POLIZ_ADDRESS)
+                    throw "LEFT DEC error";
+                j = one.get_value();
+                if (TID[j].get_assign())
+                {
+                    if (TID[j].get_type() == LEX_NUM)
+                    {
+
+                        int k = TID[j].get_value();
+                        TID[j].put_value(k - 1);
+                        args.push(Lex(LEX_NUM, k - 1, pc_el.get_string()));
+                    }
+                }
+                else
+                {
+                    throw "LEFT DEC error";
+                }
+                break;
+
+            case POLIZ_RIGHT_DEC:
+                from_st(args, one);
+                if (one.get_type() != POLIZ_ADDRESS)
+                    throw "RIGHT DEC error";
+                j = one.get_value();
+                if (TID[j].get_assign())
+                {
+                    if (TID[j].get_type() == LEX_NUM)
+                    {
+                        int k;
+                        args.push(Lex(LEX_NUM, k = TID[j].get_value(), pc_el.get_string()));
+                        dec_st.push(j);
+                    }
+                }
+                else
+                {
+                    throw "RIGHT DEC error";
+                }
+                break;
+
+            case LEX_NOT:
+                from_st(args, one);
+                if (one.get_type() == LEX_STR_CONST)
+                    throw "NOT Error";
+                else if (one.get_type() == LEX_NUM)
+                {
+                    int a = one.get_value();
+                    if (a == 0)
+                        one.put_type(LEX_TRUE);
+                    else
+                        one.put_type(LEX_FALSE);
+                }
+                else if (one.get_type() == POLIZ_ADDRESS || one.get_type() == POLIZ_LABEL)
+                    throw "NOT Error";
+                else
+                {
+                    if (one.get_type() == LEX_TRUE)
+                        one.put_type(LEX_FALSE);
+                    if (one.get_type() == LEX_FALSE)
+                        one.put_type(LEX_TRUE);
+                }
+                args.push(one);
+                break;
+
+            case LEX_DPIPE:
+                from_st(args, one);
+                from_st(args, two);
+                if (one.get_type() == LEX_NUM)
+                {
+                    if (one.get_value() > 0)
+                        j = 1;
+                    else
+                        j = 0;
+                }
+                else if (one.get_type() == LEX_TRUE)
+                    j = 1;
+                else if (one.get_type() == LEX_FALSE)
+                    j = 0;
+                else
+                    throw "OR Error";
+                if (two.get_type() == LEX_NUM)
+                {
+                    if (two.get_value() > 0)
+                        j++;
+                }
+                else if (two.get_type() == LEX_TRUE)
+                    j++;
+                else if (two.get_type() == LEX_FALSE)
+                    ;
+                else
+                    throw "OR Error";
+                if (j == 0)
+                    one.put_type(LEX_FALSE);
+                else
+                    one.put_type(LEX_TRUE);
+                args.push(one);
+                break;
+
+            case LEX_DAMP:
+                from_st(args, one);
+                from_st(args, two);
+                if (one.get_type() == LEX_NUM)
+                {
+                    if (one.get_value() > 0)
+                        j = 1;
+                    else
+                        j = 0;
+                }
+                else if (one.get_type() == LEX_TRUE)
+                    j = 1;
+                else if (one.get_type() == LEX_FALSE)
+                    j = 0;
+                else
+                    throw "AND Error";
+                if (two.get_type() == LEX_NUM)
+                {
+                    if (two.get_value() == 0)
+                        j = 0;
+                }
+                else if (two.get_type() == LEX_TRUE)
+                    ;
+                else if (two.get_type() == LEX_TRUE)
+                    j = 0;
+                else
+                    throw "AND Error";
+                if (j == 0)
+                    one.put_type(LEX_FALSE);
+                else
+                    one.put_type(LEX_TRUE);
+                args.push(one);
+                break;
+
             case LEX_DEQ:
-                from_st(args,two);
-                from_st(args,one);
+                from_st(args, two);
+                from_st(args, one);
                 if (one.get_type() == LEX_TRUE)
                 {
                     one.put_value(1);
@@ -1707,22 +1875,24 @@ void Executer::execute ( vector<Lex> & poliz ) {
                 {
                     if (one.get_string() == two.get_string())
                         one.put_type(LEX_TRUE);
-                    else one.put_type(LEX_FALSE);
+                    else
+                        one.put_type(LEX_FALSE);
                 }
                 else if (one.get_type() == LEX_NUM && two.get_type() == LEX_NUM)
                 {
-                    if( one.get_value() == two.get_value())
+                    if (one.get_value() == two.get_value())
                         one.put_type(LEX_TRUE);
-                    else one.put_type(LEX_FALSE);
+                    else
+                        one.put_type(LEX_FALSE);
                 }
-                else 
+                else
                     throw "EQ error";
-                args.push ( one );
+                args.push(one);
                 break;
- 
+
             case LEX_LSS:
-                from_st(args,two);
-                from_st(args,one);
+                from_st(args, two);
+                from_st(args, one);
                 if (one.get_type() == LEX_TRUE)
                 {
                     one.put_value(1);
@@ -1747,22 +1917,24 @@ void Executer::execute ( vector<Lex> & poliz ) {
                 {
                     if (one.get_string() < two.get_string())
                         one.put_type(LEX_TRUE);
-                    else one.put_type(LEX_FALSE);
+                    else
+                        one.put_type(LEX_FALSE);
                 }
                 else if (one.get_type() == LEX_NUM && two.get_type() == LEX_NUM)
                 {
-                    if( one.get_value() < two.get_value())
+                    if (one.get_value() < two.get_value())
                         one.put_type(LEX_TRUE);
-                    else one.put_type(LEX_FALSE);
+                    else
+                        one.put_type(LEX_FALSE);
                 }
-                else 
-                    throw "LSS error";
-                args.push ( one );
+                else
+                    throw "LESS error";
+                args.push(one);
                 break;
- 
+
             case LEX_GTR:
-                from_st(args,two);
-                from_st(args,one);
+                from_st(args, two);
+                from_st(args, one);
                 if (one.get_type() == LEX_TRUE)
                 {
                     one.put_value(1);
@@ -1787,22 +1959,24 @@ void Executer::execute ( vector<Lex> & poliz ) {
                 {
                     if (one.get_string() > two.get_string())
                         one.put_type(LEX_TRUE);
-                    else one.put_type(LEX_FALSE);
+                    else
+                        one.put_type(LEX_FALSE);
                 }
                 else if (one.get_type() == LEX_NUM && two.get_type() == LEX_NUM)
                 {
-                    if( one.get_value() > two.get_value())
+                    if (one.get_value() > two.get_value())
                         one.put_type(LEX_TRUE);
-                    else one.put_type(LEX_FALSE);
+                    else
+                        one.put_type(LEX_FALSE);
                 }
-                else 
-                    throw "GTR error";
-                args.push ( one );
+                else
+                    throw "GREATER error";
+                args.push(one);
                 break;
- 
+
             case LEX_LEQ:
-                from_st(args,two);
-                from_st(args,one);
+                from_st(args, two);
+                from_st(args, one);
                 if (one.get_type() == LEX_TRUE)
                 {
                     one.put_value(1);
@@ -1827,22 +2001,24 @@ void Executer::execute ( vector<Lex> & poliz ) {
                 {
                     if (one.get_string() <= two.get_string())
                         one.put_type(LEX_TRUE);
-                    else one.put_type(LEX_FALSE);
+                    else
+                        one.put_type(LEX_FALSE);
                 }
                 else if (one.get_type() == LEX_NUM && two.get_type() == LEX_NUM)
                 {
-                    if( one.get_value() <= two.get_value())
+                    if (one.get_value() <= two.get_value())
                         one.put_type(LEX_TRUE);
-                    else one.put_type(LEX_FALSE);
+                    else
+                        one.put_type(LEX_FALSE);
                 }
-                else 
-                    throw "LEQ error";
-                args.push ( one );
+                else
+                    throw "LESS EQ error";
+                args.push(one);
                 break;
- 
+
             case LEX_GEQ:
-                from_st(args,two);
-                from_st(args,one);
+                from_st(args, two);
+                from_st(args, one);
                 if (one.get_type() == LEX_TRUE)
                 {
                     one.put_value(1);
@@ -1867,22 +2043,24 @@ void Executer::execute ( vector<Lex> & poliz ) {
                 {
                     if (one.get_string() >= two.get_string())
                         one.put_type(LEX_TRUE);
-                    else one.put_type(LEX_FALSE);
+                    else
+                        one.put_type(LEX_FALSE);
                 }
                 else if (one.get_type() == LEX_NUM && two.get_type() == LEX_NUM)
                 {
-                    if( one.get_value() >= two.get_value())
+                    if (one.get_value() >= two.get_value())
                         one.put_type(LEX_TRUE);
-                    else one.put_type(LEX_FALSE);
+                    else
+                        one.put_type(LEX_FALSE);
                 }
-                else 
-                    throw "GEQ error";
-                args.push ( one );
+                else
+                    throw "GREATER EQ error";
+                args.push(one);
                 break;
- 
+
             case LEX_NEQ:
-                from_st(args,two);
-                from_st(args,one);
+                from_st(args, two);
+                from_st(args, one);
                 if (one.get_type() == LEX_TRUE)
                 {
                     one.put_value(1);
@@ -1907,141 +2085,26 @@ void Executer::execute ( vector<Lex> & poliz ) {
                 {
                     if (one.get_string() != two.get_string())
                         one.put_type(LEX_TRUE);
-                    else one.put_type(LEX_FALSE);
+                    else
+                        one.put_type(LEX_FALSE);
                 }
                 else if (one.get_type() == LEX_NUM && two.get_type() == LEX_NUM)
                 {
-                    if( one.get_value() != two.get_value())
+                    if (one.get_value() != two.get_value())
                         one.put_type(LEX_TRUE);
-                    else one.put_type(LEX_FALSE);
+                    else
+                        one.put_type(LEX_FALSE);
                 }
-                else 
-                    throw "NEQ error";
-                args.push ( one );
+                else
+                    throw "NOT EQ error";
+                args.push(one);
                 break;
- 
-            case LEX_EQ:
-                from_st(args,one);
-                from_st(args,two);
-                j = two.get_value();
-                if (one.get_type() == LEX_STR_CONST)
-                {
-                    TID[j].put_str(one.get_string());
-                    TID[j].put_type(LEX_STR_CONST);
-                }
-                else if (one.get_type() == LEX_NUM)
-                {
-                    TID[j].put_value(one.get_value());
-                    TID[j].put_type(LEX_NUM);
-                }
-                else if (one.get_type() == LEX_TRUE)
-                    TID[j].put_type(LEX_TRUE);
-                else if (one.get_type() == LEX_FALSE)
-                    TID[j].put_type(LEX_FALSE);
-                TID[j].put_assign(); 
-				while (!inc_st.empty())
-				{
-					inc_dec_tmp=inc_st.top();
-					inc_st.pop();
-					TID[inc_dec_tmp].put_value(TID[inc_dec_tmp].get_value()+1);
-				}
-				while (!dec_st.empty())
-				{
-					inc_dec_tmp=dec_st.top();
-					dec_st.pop();
-					TID[inc_dec_tmp].put_value(TID[inc_dec_tmp].get_value()-1);
-				}
-                break;
-                
-            case POLIZ_LEFT_INC:
-                from_st(args,one);
-                if (one.get_type() != POLIZ_ADDRESS)
-                    throw "LINK error";
-                j = one.get_value();
-                if (TID[j].get_assign ()) 
-                {
-                    if (TID[j].get_type() == LEX_NUM)
-                    {
-						
-                        int k = TID[j].get_value();
-                        TID[j].put_value(k + 1);
-                        args.push (Lex(LEX_NUM, k + 1 , pc_el.get_string()));
-                    }
-                }
-				else 
-				{
-					throw "LINK error";
-				}
-				break;
-            
-            case POLIZ_RIGHT_INC:
-                from_st(args,one);
-                if (one.get_type() != POLIZ_ADDRESS)
-                    throw "RINK error";
-                j = one.get_value();
-                if (TID[j].get_assign ()) 
-                {
-                    if (TID[j].get_type() == LEX_NUM)
-                    {
-                        int k;
-                        args.push (Lex(LEX_NUM, k = TID[j].get_value(), pc_el.get_string()));
-						inc_st.push(j);
-                        //TID[j].put_value(k + 1);
-                    }
-                }
-				else 
-				{
-					throw "RINK error";
-				}
-				break;
-				
-            case POLIZ_LEFT_DEC:
-                from_st(args,one);
-                if (one.get_type() != POLIZ_ADDRESS)
-                    throw "LDEC error";
-                j = one.get_value();
-                if (TID[j].get_assign ()) 
-                {
-                    if (TID[j].get_type() == LEX_NUM)
-                    {
-						
-                        int k = TID[j].get_value();
-                        TID[j].put_value(k - 1);
-                        args.push (Lex(LEX_NUM, k - 1 , pc_el.get_string()));
-                    }
-                }
-				else 
-				{
-					throw "LDEC error";
-				}
-				break;
-				
-            case POLIZ_RIGHT_DEC:
-                from_st(args,one);
-                if (one.get_type() != POLIZ_ADDRESS)
-                    throw "RDEC error";
-                j = one.get_value();
-                if (TID[j].get_assign ()) 
-                {
-                    if (TID[j].get_type() == LEX_NUM)
-                    {
-                        int k;
-                        args.push (Lex(LEX_NUM, k = TID[j].get_value(), pc_el.get_string()));
-						dec_st.push(j);
-                    }
-                }
-				else 
-				{
-					throw "RDEC error";
-				}
-				break;
- 
             default:
                 throw "POLIZ: unexpected elem";
-        }//end of switch
+        } // end of switch
         ++index;
-    };//end of while
-    cout << "Finish of executing!!!" << endl;
+    }; // end of while
+    cout << "Executer is OK!" << endl;
 }
  
 class Interpretator {
