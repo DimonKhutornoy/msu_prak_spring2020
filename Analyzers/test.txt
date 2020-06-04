@@ -1,0 +1,8 @@
+#!bin/my_prog.exe
+/*write("Content-type: text/html\n\n");
+write("<html><body>");
+write("Приветствую! Вы ввели аргументы:’%s’ с адреса ’ %s’",
+getenv(QUERY_STRING), getenv(REMOTE_ADDR));*/
+write("Приветствую!");
+//write("</body></html>");
+@

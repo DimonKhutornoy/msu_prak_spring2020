@@ -11,25 +11,27 @@ using namespace std;
  
 enum type_of_lex {
   LEX_NULL,                                                                                                                      /*00*/
-  LEX_BOOL, LEX_BREAK, LEX_CONTINUE, LEX_DO, LEX_ELSE, LEX_FALSE, LEX_FOR, LEX_FUNCTION, LEX_IF, LEX_IN,                         /*10*/       
-  LEX_NAN, LEX_NUMBER, LEX_NULLPTR, LEX_OBJECT, LEX_RETURN, LEX_STRING, LEX_TRUE, LEX_TYPEOF, 	                                 /*18*/
-  LEX_UNDEFINED, LEX_VAR, LEX_WHILE, LEX_INT,                                                                                    /*22*/
-  LEX_FIN,                                                                                                                       /*23*/
-  LEX_SEMICOLON, LEX_COMMA, LEX_COLON, LEX_DOT, LEX_LPAREN, LEX_RPAREN, LEX_LQPAREN, LEX_RQPAREN, LEX_BEGIN, LEX_END,            /*33*/
-  LEX_EQ, LEX_DEQ, LEX_TEQ, LEX_LSS, LEX_GTR, LEX_PLUS, LEX_PLUS_EQ, LEX_DPLUS, LEX_MINUS, LEX_MINUS_EQ, LEX_DMINUS,              /*44*/
-  LEX_TIMES, LEX_TIMES_EQ, LEX_TIMES_SLASH, LEX_SLASH, LEX_SLASH_EQ, LEX_SLASH_TIMES, LEX_DSLASH, LEX_PERCENT, LEX_PERCENT_EQ,   /*53*/
-  LEX_LEQ, LEX_NOT, LEX_NEQ, LEX_NDEQ, LEX_GEQ, LEX_OR, LEX_DPIPE, LEX_AND, LEX_DAMP,                                            /*62*/
-  LEX_NUM,                                                                                                                       /*63*/
-  LEX_STR_CONST,                                                                                                                 /*64*/                                                                       
-  LEX_ID,                                                                                                                        /*65*/ 
-  POLIZ_LABEL,                                                                                                                   /*66*/
-  POLIZ_ADDRESS,                                                                                                                 /*67*/
-  POLIZ_GO,                                                                                                                      /*68*/
-  POLIZ_FGO,                                                                                                                     /*69*/
-  POLIZ_LEFT_INC,                                                                                                                /*70*/
-  POLIZ_RIGHT_INC,                                                                                                               /*71*/ 
-  POLIZ_LEFT_DEC,                                                                                                                /*72*/
-  POLIZ_RIGHT_DEC,                                                                                                               /*73*/
+  LEX_BOOL, LEX_BREAK, LEX_CONTINUE, LEX_DO, LEX_ELSE, LEX_FALSE, LEX_FOR, LEX_FUNCTION, LEX_GETENV, LEX_IF, LEX_IN,             /*11*/       
+  LEX_NAN, LEX_NUMBER, LEX_NULLPTR, LEX_OBJECT, LEX_RETURN, LEX_STRING, LEX_TRUE, LEX_TYPEOF, 	                                 /*19*/
+  LEX_UNDEFINED, LEX_VAR, LEX_WHILE, LEX_WRITE,                                                                                  /*23*/
+  LEX_FIN,                                                                                                                       /*24*/
+  LEX_SEMICOLON, LEX_COMMA, LEX_COLON, LEX_DOT, LEX_LPAREN, LEX_RPAREN, LEX_LQPAREN, LEX_RQPAREN, LEX_BEGIN, LEX_END,            /*34*/
+  LEX_EQ, LEX_DEQ, LEX_TEQ, LEX_LSS, LEX_GTR, LEX_PLUS, LEX_PLUS_EQ, LEX_DPLUS, LEX_MINUS, LEX_MINUS_EQ, LEX_DMINUS,             /*45*/
+  LEX_TIMES, LEX_TIMES_EQ, LEX_TIMES_SLASH, LEX_SLASH, LEX_SLASH_EQ, LEX_SLASH_TIMES, LEX_DSLASH, LEX_PERCENT, LEX_PERCENT_EQ,   /*54*/
+  LEX_LEQ, LEX_NOT, LEX_NEQ, LEX_NDEQ, LEX_GEQ, LEX_OR, LEX_DPIPE, LEX_AND, LEX_DAMP,                                            /*63*/
+  LEX_NUM,                                                                                                                       /*64*/
+  LEX_STR_CONST,                                                                                                                 /*65*/                                                                       
+  LEX_ID,                                                                                                                        /*66*/ 
+  POLIZ_LABEL,                                                                                                                   /*67*/
+  POLIZ_ADDRESS,                                                                                                                 /*68*/
+  POLIZ_GO,                                                                                                                      /*69*/
+  POLIZ_FGO,                                                                                                                     /*70*/
+  POLIZ_LEFT_INC,                                                                                                                /*71*/
+  POLIZ_RIGHT_INC,                                                                                                               /*72*/ 
+  POLIZ_LEFT_DEC,                                                                                                                /*73*/
+  POLIZ_RIGHT_DEC,                                                                                                               /*74*/
+  POLIZ_WRITE,                                                                                                                   /*75*/
+  POLIZ_GETENV
 };
  
 
@@ -199,8 +201,8 @@ public:
 };
 
 const char* Scanner::TW[] = { "", "Boolean", "break", "continue", "do", "else", "false", "for", "function",
-    "if", "in", "NaN", "Number", "null", "Object", "return", "String", "true", "typeof",
-    "undefined", "var", "while", NULL };
+    "getenv", "if", "in", "NaN", "Number", "null", "Object", "return", "String", "true", "typeof",
+    "undefined", "var", "while", "write", NULL };
 
 const char* Scanner::TD[] = { "@", ";", ",", ":", ".", "(", ")", "[", "]", "{", "}", "=", "==",
     "===", "<", ">", "+", "+=", "++", "-", "-=", "--", "*", "*=", "*/", "/", "/=", "/*", "//", "%",
@@ -253,7 +255,6 @@ Lex Scanner::get_lex()
                 }
 				else if (c == '#')
 				{
-					buf.push_back(c);
                     CS = COM3;
 				}
                 else if (c == '!' || c == '=')
@@ -500,36 +501,40 @@ Lex Scanner::get_lex()
 ostream& operator<<(ostream& s, Lex l)
 {
     string t;
-    if (l.t_lex <= 21)
+    if (l.t_lex <= 23)
         t = Scanner::TW[l.t_lex];
-    else if (l.t_lex >= 23 && l.t_lex <= 62)
-        t = Scanner::TD[l.t_lex - 23];
-    else if (l.t_lex == 63)
-        t = "NUMB";
+    else if (l.t_lex >= 24 && l.t_lex <= 63)
+        t = Scanner::TD[l.t_lex - 24];
     else if (l.t_lex == 64)
+        t = "NUMB";
+    else if (l.t_lex == 65)
     {
         t = "STRING CONST";
         s << '(' << t << ',' << l.s_lex << ");" << endl;
         return s;
     }
-    else if (l.t_lex == 65)
-        t = TID[l.v_lex].get_name();
     else if (l.t_lex == 66)
-        t = "Label";
+        t = TID[l.v_lex].get_name();
     else if (l.t_lex == 67)
-        t = "&";
+        t = "Label";
     else if (l.t_lex == 68)
-        t = "!";
+        t = "&";
     else if (l.t_lex == 69)
+        t = "!";
+    else if (l.t_lex == 70)
         t = "!F";
-	else if (l.t_lex == 70)
-        t = "+#";
 	else if (l.t_lex == 71)
-        t = "#+";
+        t = "+#";
 	else if (l.t_lex == 72)
-        t = "-#";
+        t = "#+";
 	else if (l.t_lex == 73)
+        t = "-#";
+	else if (l.t_lex == 74)
         t = "#-";
+    else if (l.t_lex == 75)
+        t = "wr";
+	else if (l.t_lex == 76)
+        t = "gv";
     else
         throw l;
     s << '(' << t << ',' << l.v_lex << ");" << endl;
@@ -551,6 +556,7 @@ class Parser
     Lex curr_lex;
     type_of_lex c_type;
     int c_val;
+	string c_str;
     Scanner scan;
     stack<int> st_int;
     stack<type_of_lex> st_lex;
@@ -563,6 +569,8 @@ class Parser
     void E1();
     void T();
     void F();
+	void WR();
+	void GV();
     void FOR_PARAMETERS();
     void dec(type_of_lex type, int i);
     void check_id();
@@ -572,7 +580,8 @@ class Parser
         curr_lex = scan.get_lex();
         c_type = curr_lex.get_type();
         c_val = curr_lex.get_value();
-        cout << curr_lex;
+        c_str = curr_lex.get_string();
+        //cout << curr_lex;
     }
 
 public:
@@ -587,18 +596,18 @@ public:
 void Parser::analyze()
 {
     int num = 0;
-	cout<<"\nLEXEMS:\n\n";
+	//cout<<"\nLEXEMS:\n\n";
     gl();
     S();
     if (c_type != LEX_FIN)
         throw curr_lex;
-    cout << "\nPOLIZ:\n\n";
+    //cout << "\nPOLIZ:\n\n";
     for (Lex l : poliz)
     {
-        cout << num << ' ' << l;
+        //cout << num << ' ' << l;
         num++;
     }
-    cout << "\nPOLIZ is OK!\n\n";
+    //cout << "\nPOLIZ is OK!\n\n";
 }
 
 void Parser::S()
@@ -842,11 +851,21 @@ void Parser::S()
     {
         return;
     }
-    if (c_type == LEX_DPLUS || c_type == LEX_DMINUS)
+    else if (c_type == LEX_DPLUS || c_type == LEX_DMINUS)
     {
         E();
         gl();
     }
+	else if (c_type == LEX_WRITE)
+	{
+		WR();
+		gl();
+	}
+	else if (c_type == LEX_GETENV)
+	{
+		GV();
+		gl();
+	}
     S();
 }
 
@@ -1117,6 +1136,69 @@ void Parser::FOR_PARAMETERS()
     else
         throw curr_lex;
 }
+
+void Parser::WR()
+{
+	gl();
+	if (c_type != LEX_LPAREN)
+	{
+		throw curr_lex;
+	}
+	else
+	{
+		gl();
+		if (c_type == LEX_ID)
+		{
+			check_id();
+			poliz.push_back(Lex(POLIZ_ADDRESS, c_val));
+			gl();
+		}
+		else
+		{
+			E();
+		}
+		if (c_type != LEX_RPAREN)
+		{
+			throw curr_lex;
+		}
+		else
+		{
+			gl();
+			poliz.push_back(Lex(POLIZ_WRITE));
+		}
+	}
+}
+
+void Parser::GV()
+{
+	gl();
+	if (c_type != LEX_LPAREN)
+	{
+		throw curr_lex;
+	}
+	else
+	{
+		gl();
+		if (c_type == LEX_STR_CONST)
+		{
+			poliz.push_back(Lex(LEX_STR_CONST, 0, c_str));
+			gl();
+		}
+		else
+		{
+			throw curr_lex;
+		}
+		if (c_type != LEX_RPAREN)
+		{
+			throw curr_lex;
+		}
+		else
+		{
+			gl();
+			poliz.push_back(Lex(POLIZ_GETENV));
+		}
+	}
+}
 /////////////////////////////////////////////////////////////////////////////
 
 void Parser::dec(type_of_lex type, int i)
@@ -1164,6 +1246,7 @@ void Executer::execute(vector<Lex>& poliz)
     stack<int> inc_st;
     stack<int> dec_st;
     int inc_dec_tmp;
+	//cout<<"Output:\n";
     while (index < size)
     {
         pc_el = poliz[index];
@@ -2099,12 +2182,31 @@ void Executer::execute(vector<Lex>& poliz)
                     throw "NOT EQ error";
                 args.push(one);
                 break;
+			
+			case POLIZ_WRITE:
+				from_st(args, one);
+				if (one.get_type() == POLIZ_ADDRESS)
+					if (TID[one.get_value()].get_str()!="")
+						cout<<TID[one.get_value()].get_str()<<'\n';
+					else
+						cout<<TID[one.get_value()].get_value()<<'\n';
+				else if (one.get_type() == LEX_STR_CONST)
+					cout<<one.get_string()<<'\n';
+				else 
+					cout<<one.get_value()<<'\n';
+				break;
+				
+			case POLIZ_GETENV:
+				from_st(args, one);
+				cout<<getenv(one.get_string().c_str())<<'\n';
+				break;
+				
             default:
                 throw "POLIZ: unexpected elem";
         } // end of switch
         ++index;
     }; // end of while
-    cout << "Executer is OK!" << endl;
+    //cout << "\n\nExecuter is OK!" << endl;
 }
  
 class Interpretator {
@@ -2125,14 +2227,14 @@ void Interpretator::interpretation ()
 
 int main(int argc, char** argv)
 {
-    if (argc==1)
+    /*if (argc==1)
     {
         cout << "FILE ERROR!";
         return 0;
-    }
+    }*/
     try
     {
-        Interpretator I(argv[1]);
+        Interpretator I(argv[0]);
         I.interpretation();
         return 0;
     }

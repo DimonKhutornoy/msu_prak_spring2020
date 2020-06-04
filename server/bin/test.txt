@@ -1,0 +1,6 @@
+#!my_prog.exe
+write("Доброе утро, девочки!");
+write("Доброе утро, мальчики!");
+getenv("SERVER_ADDR");
+getenv("SERVER_PORT");
+@

@@ -1,16 +1,101 @@
 #include <iostream>
+#include <fstream>
 #include <sys/types.h>
-#include <sys/wait.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <cstring>
 #include <arpa/inet.h>
+#include <unistd.h>
 #include <ctime>
+#include <vector>
+#include <string.h>
+#include <signal.h>
+#include <sys/select.h>
+#include <sstream>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <sys/wait.h>
 
-#define BACKLOG 5
-#define BUFLEN 1024
+using namespace std;
+
+#define PORTNUM 8080
+#define BACKLOG 10
+#define BUFLEN 10000
+
+class Server
+{
+private:
+    int Serverfd;
+    int port;
+    char Request[BUFLEN];
+    int Reqfd;
+
+public:
+    Server(string LogFile);
+    void Run();
+    ~Server();
+};
+
+char* get_params(char* str)
+{
+    char* last = new char[BUFLEN];
+    int i = 5, j = 0;
+    while (str[i] != 0)
+    {
+        if (str[i] != '/')
+            last[j++] = str[i];
+        else
+            j = 0;
+        i++;
+    }
+    last[j] = 0;
+    return last;
+}
+
+
+char* get_file_name(char* str)
+{
+    char* first = new char[BUFLEN];
+    strcpy(first, str);
+    int i = 0;
+    while (first[i++] != '?')
+        ;
+    first[i - 1] = 0;
+    return first;
+}
+
+bool is_cgi(char* str)
+{
+    char* last = get_params(str);
+    for (size_t i = 0; i < strlen(last); i++)
+    {
+        if (last[i] == '?')
+        {
+            delete[] last;
+            return true;
+        }
+    }
+    delete[] last;
+    return false;
+}
+
+void file_res(int Clientfd, string error_file)
+{
+    int len = 0;
+    char buf[BUFLEN];
+    int Filefd = open(error_file.c_str(), O_RDONLY);
+    while ((len = read(Filefd, &buf, BUFLEN)))
+    {
+        if (send(Clientfd, buf, len, 0) < 0)
+        {
+            close(Filefd);
+            perror(error_file.c_str());
+            shutdown(Clientfd, SHUT_RDWR);
+            close(Clientfd);
+            exit(1);
+        }
+    }
+    close(Filefd);
+}
 
 char* itoa(int i)
 {
@@ -18,392 +103,270 @@ char* itoa(int i)
     sprintf(str, "%d", i);
     return str;
 }
-int fcount(int fd)
+
+int char_search(char* str, char c)
 {
-    int size = 0, len;
-    char c[1024];
-    while ((len = read(fd, &c, 1024)) > 0)
-        size += len;
-    lseek(fd, 0, 0);
-    return size;
+    int j = 0;
+    while ((str[j] != '\0') && (str[j] != c))
+        j++;
+    if (str[j] == '0')
+        return 0;
+    return j;
 }
-int port = 8080;
 
-
-class pid_arr
+char* Response(int code, string msg, bool flag)
 {
-    int* a;
-    int len;
+    string str = "HTTP/1.1 ";
+    str += to_string(code);
+    str += " ";
+    str += msg;
+    str += "\r\nStatus: ";
+    str += to_string(code);
+    str += " ";
+    str += msg;
+    if (flag)
+    {
+        str += "\r\nContent-type: text/html; charset=utf-8\r\n\r\n<html><body><p>";
+        str += msg;
+        str += "</p></body></html>";
+    }
+    else
+    {
+        str += "\r\nContent-type: text/html; charset=utf-8\r\n\r\n";
+    }
+    int n = str.length();
+    char* res = (char*)malloc((n + 1) * sizeof(char));
+    strcpy(res, str.c_str());
+    return res;
+}
 
-public:
-    pid_arr()
-    {
-        len = 0;
-        a = new int[0];
-    }
-    void add(int pid)
-    {
-        int* new_a = new int[++len];
-        for (int i = 0; i < len - 1; i++)
-        {
-            new_a[i] = a[i];
-        }
-        new_a[len - 1] = pid;
-        delete[] a;
-        a = new_a;
-    }
-    void del(int pid)
-    {
-        int* new_a = new int[--len];
-        int i = 0;
-        while (a[i] != pid)
-        {
-            new_a[i] = a[i];
-            i++;
-        }
-        for (int j = i + 1; j < len + 1; j++)
-            new_a[j - 1] = a[i];
-        delete[] a;
-        a = new_a;
-    }
-    int get_len() const
-    {
-        return len;
-    }
-    int* get_a()
-    {
-        return a;
-    }
-    int& operator[](int index)
-    {
-        return a[index];
-    }
-    ~pid_arr()
-    {
-        delete[] a;
-    }
-};
-
-pid_arr pids;
-
-class Server
+Server::Server(string ReqFile)
 {
-    int serverSocket;
+    Reqfd = open(ReqFile.c_str(), O_CREAT | O_WRONLY | O_TRUNC, 0777);
+    time_t st_time = time(NULL);
+    char* str = asctime(localtime(&st_time));
+    write(Reqfd, str, strlen(str));
+    port = PORTNUM;
     struct sockaddr_in ServerAddress;
+    if ((Serverfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+    {
+        cout << "Can't create socket!\n";
+        exit(1);
+    }
+    memset(&ServerAddress, 0, sizeof(ServerAddress));
+    ServerAddress.sin_family = AF_INET;
+    ServerAddress.sin_port = htons(port);
+    ServerAddress.sin_addr.s_addr = INADDR_ANY;
+    if (bind(Serverfd, (struct sockaddr*)&ServerAddress, sizeof(ServerAddress)) < 0)
+    {
+        cout << "Can't bind socket\n";
+        close(Serverfd);
+        exit(1);
+    }
+    if (listen(Serverfd, BACKLOG) < 0)
+    {
+        cout << "Can't listen socket\n";
+        close(Serverfd);
+        exit(1);
+    }
+}
 
-public:
-    Server(int port = 8080)
-    {
-        serverSocket = socket(AF_INET, SOCK_STREAM, 0);
-        memset(&ServerAddress, '0', sizeof(ServerAddress));
-        ServerAddress.sin_family = AF_INET;
-        ServerAddress.sin_port = htons(port);
-        if (inet_pton(AF_INET, "127.0.0.1", &ServerAddress.sin_addr) <= 0)
-        { 
-            printf("\n inet_pton error occured\n");
-            exit(1);
-        }
-    }
-    int get_sock() const
-    {
-        return serverSocket;
-    }
-    void sbind()
-    {
-        if (bind(serverSocket, (struct sockaddr*)&ServerAddress, sizeof(ServerAddress)) < 0)
-        {
-            std::cerr << "fatal error: cannot bind\n";
-            exit(1);
-        }
-    }
-    void slisten()
-    {
-        if (listen(serverSocket, BACKLOG) < 0)
-        {
-            std::cerr << "fatal error: cannot listen\n";
-            exit(1);
-        }
-    }
-};
-
-class Client
+void Server::Run()
 {
-    int clSocket;
-    socklen_t ClAddrLen;
-    struct sockaddr_in ClientAddress;
-    int char_search(char* str, char c) const
+    cout << "Server is ready!" << endl;
+    while (true)
     {
-        int j = 0;
-        while ((str[j] != '\0') && (str[j] != c))
-            j++;
-        if (str[j] == '0')
-            return 0;
-        return j;
-    }
-
-public:
-    int get_sock() const
-    {
-        return clSocket;
-    }
-    void cl_accept(int serverSocket)
-    {
-        ClAddrLen = sizeof(ClientAddress);
-        clSocket = accept(serverSocket, (struct sockaddr*)&ClientAddress, &ClAddrLen);
-        if (clSocket < 0)
+        bool home = true;
+        struct sockaddr_in ClientAddress;
+        size_t ClAddrLen = sizeof(ClientAddress);
+        int Clientfd = accept(Serverfd, (struct sockaddr*)&ClientAddress, (socklen_t*)&ClAddrLen);
+        if (Clientfd < 0)
         {
-            std::cout << "error: losed socked\n";
+            cout << "Client Error\n";
+            close(Serverfd);
+            close(Clientfd);
+            exit(1);
         }
-    }
-    int cl_request()
-    {
-        int len;
-        char buf[BUFLEN];
-        int cont_type;
-        if ((len = recv(clSocket, &buf, BUFLEN, 0)) < 0)
+        int req = recv(Clientfd, Request, BUFLEN, 0);
+        if (req < 0)
         {
-            shutdown(clSocket, 1);
-            close(clSocket);
-            std::cout << "error: reading socked\n";
-            exit(2);
+            cout << "Server Error\n";
+            close(Serverfd);
+            close(Clientfd);
+            exit(1);
         }
-        if (strncmp(buf, "GET /", 5))
+        write(Reqfd, Request, strlen(Request));
+        if (!strncmp(Request, "GET", 3))
         {
-            // BadRequest
-            strcpy(buf, "HTTP/1.0 501 NotImplemented modelserver\nServer: Model HTTP "
-                        "Server/0.1\nConnection: keep-alive\nAllow: GET\nDate: ");
-            time_t tm = time(NULL);
-            strcat(buf, asctime(localtime(&tm)));
-            strcat(buf, "\n\n");
-            len = strlen(buf);
-            send(clSocket, &buf, len, 0);
-            shutdown(clSocket, 1);
-            close(clSocket);
-            return 501;
-        }
-        int i = 5;
-        int fd;
-        while (buf[i] && (buf[i++] > ' '))
-            ;
-        buf[i - 1] = 0;
-        i = 5;
-        while (buf[i] && (buf[i++] != '.'))
-            ;
-        cont_type = 2;
-        if (buf[i])
-        {
-            if (!strncmp(buf + i, "html", 4))
-                cont_type = 0;
-            else if (!strncmp(buf + i, "jpeg", 4))
-                cont_type = 1;
-        }
-        else if (strlen(buf) > 5)
-        { // cgi
-            cont_type = 0;
-            int pid;
-            if ((pid = fork()) > 0)
+            int i = 5;
+            char c = Request[i];
+            while (c != ' ')
             {
-                pids.add(pid);
-                return 1;
+                i++;
+                c = Request[i];
+            }
+            char path[i - 3];
+            if (i != 5)
+            {
+                home = false;
+                copy(&Request[5], &Request[i], &path[0]);
+                path[i - 4] = '\0';
             }
             else
             {
-                char* argv[2];
-                argv[0] = buf + 5;
-                argv[1] = NULL;
-                char tmp_file[11];
-                strcpy(tmp_file, "p");
-                char* fname = itoa(getpid());
-                strcat(tmp_file, fname);
-                delete[] fname;
-                creat(tmp_file, 0666);
-                int tmp = open(tmp_file, O_TRUNC | O_WRONLY);
-                dup2(tmp, 1);
-                close(tmp);
-                int offset = char_search(buf + 5, '?');
-                (buf + 5)[offset] = '\0';
-                char** envp = new char*[7];
-                envp[0] = new char[(int)strlen("SERVER_ADDR=127.0.0.1") + 1];
-                strcpy(envp[0], "SERVER_ADDR=127.0.0.1");
-                envp[1] = new char[(int)strlen("CONTENT_TYPE=text/plain") + 1];
-                strcpy(envp[1], "CONTENT_TYPE=text/plain");
-                envp[2] = new char[(int)strlen("SERVER_PROTOCOL=HTTP/1.0") + 1];
-                strcpy(envp[2], "SERVER_PROTOCOL=HTTP/1.0");
-                envp[3] = new char[(int)strlen("SCRIPT_NAME=") + 1 + strlen(buf + 5)];
-                strcpy(envp[3], "SCRIPT_NAME=");
-                strcat(envp[3], buf + 5);
-                envp[4] = new char[(int)strlen("SERVER_PORT=") + 5];
-                char* str_port = itoa(port);
-                strcpy(envp[4], "SERVER_PORT=");
-                strcat(envp[4], str_port);
-                delete[] str_port;
-                envp[5]
-                    = new char[(int)strlen("QUERY_STRING=") + 1 + (int)strlen(buf + 6 + offset)];
-                strcpy(envp[5], "QUERY_STRING=");
-                strcat(envp[5], buf + 6 + offset);
-                envp[6] = NULL;
-                execve(argv[0], argv, envp);
-                std::cerr << "cgi error\n";
-                delete[] envp;
-                exit(1);
-                // обработка ошибок запуска
+                path[0] = '/';
+                path[1] = '\0';
             }
-        }
-        if (strlen(buf) == 5)
-        {
-            cont_type = 0;
-            fd = open("main.html", O_RDONLY);
-        }
-        else if ((fd = open(buf + 5, O_RDONLY)) < 0)
-        {
-            fd = open("err404.html", O_RDONLY);
-            strcpy(buf, "HTTP/1.0 404 PageNotFound modelserver\nServer: Model HTTP "
-                        "Server/0.1\nAllow: GET\nConnection: keep-alive\nContent-type: "
-                        "text/html\nDate: ");
-            time_t tm = time(NULL);
-            strcat(buf, asctime(localtime(&tm)));
-            strcat(buf, "\n\n");
-            len = strlen(buf);
-            send(clSocket, &buf, len, 0);
-            while ((len = read(fd, buf, BUFLEN)) > 0)
-                send(clSocket, &buf, len, 0);
-            close(fd);
-            shutdown(clSocket, 1);
-            close(clSocket);
-            return 404;
-        }
-        strcpy(buf, "HTTP/1.0 200 OK modelserver\nServer: Model HTTP Server/0.1\nAllow: "
-                    "GET\nConnection: keep-alive\nDate: ");
-        time_t tm = time(NULL);
-        strcat(buf, asctime(localtime(&tm)));
-        strcat(buf, "Content-length: ");
-        char* cl = itoa(fcount(fd));
-        strcat(buf, cl);
-        delete[] cl;
-        switch (cont_type)
-        {
-            case 0:
-                strcat(buf, "\nContent-type: text/html\n\n");
-                break;
-            case 1:
-                strcat(buf, "\nContent-type: image/jpeg\n\n");
-                break;
-            case 2:
-                strcat(buf, "\nContent-type: text/plain\n\n");
-                break;
-        }
-        len = strlen(buf);
-        send(clSocket, &buf, len, 0);
-        while ((len = read(fd, buf, BUFLEN)) > 0)
-            send(clSocket, &buf, len, 0);
-        close(fd);
-        shutdown(clSocket, 1);
-        close(clSocket);
-        return 200;
-    }
-};
-
-int main(int argc, char** argv)
-{
-    if (argc > 1)
-        port = atoi(argv[1]);
-    Server s(port);
-    s.sbind();
-    s.slisten();
-    Client client;
-    fd_set readset;
-    timeval timeout;
-    timeout.tv_sec = 600;
-    timeout.tv_usec = 0;
-
-    for (;;)
-    {
-        FD_ZERO(&readset);
-        FD_SET(s.get_sock(), &readset);
-        int activity, status;
-        if (pids.get_len() == 0)
-        {
-            activity = select(s.get_sock() + 1, &readset, NULL, NULL, NULL);
-        }
-        else
-        {
-            timeout.tv_sec = 1;
-            timeout.tv_usec = 0;
-            activity = select(s.get_sock() + 1, &readset, NULL, NULL, &timeout);
-        }
-        if (activity < 0)
-        {
-            std::cerr << "Error with select\n";
-            exit(4);
-        }
-        else if (activity > 0)
-        {
-            if (FD_ISSET(s.get_sock(), &readset))
+            cout << "File: " << path << endl;
+            if (is_cgi(path))
             {
-                fcntl(client.get_sock(), F_SETFL, O_NONBLOCK);
-                client.cl_accept(s.get_sock());
-                if (client.cl_request() == 1)
-                    continue; // cgi
-            }
-        }
-        for (int i = 0; i < pids.get_len(); i++)
-        {
-            if (waitpid(pids[i], &status, WNOHANG))
-            {
-                if (!(status))
+                chdir("./bin");
+                int status;
+                string name = to_string(getpid()) + ".txt";
+                int Filefd = open(name.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+                dup2(Filefd, 1);
+                if (!fork())
                 {
-                    printf("OK\n");
-                    char fname[11];
-                    strcpy(fname, "p");
-                    char* spid = itoa(pids[i]);
-                    strcat(fname, spid);
-                    delete[] spid;
-                    char buf[512];
-                    strcpy(buf, "HTTP/1.0 200 OK modelserver\nServer: Model HTTP "
-                                "Server/0.1\nAllow: GET\nConnection: keep-alive\nDate: ");
-                    time_t tm = time(NULL);
-                    strcat(buf, asctime(localtime(&tm)));
-                    strcat(buf, "Content-length: ");
-                    int fd = open(fname, O_RDONLY);
-                    char* cl = itoa(fcount(fd));
-                    strcat(buf, cl);
-                    delete[] cl;
-                    strcat(buf, "\nContent-type: text/plain\n\n");
-                    int len = strlen(buf);
-                    send(client.get_sock(), &buf, len, 0);
-                    while ((len = read(fd, buf, BUFLEN)) > 0)
-                        send(client.get_sock(), &buf, len, 0);
-                    close(fd);
-                    remove(fname);
+                    chdir("./bin");
+                    string processName = get_file_name(path);
+                    int tmpFd = open(processName.c_str(), O_RDONLY, 0644);
+                    ifstream is(processName.c_str());
+                    string s;
+                    is >> s;
+                    while (s[0] == '#' || s[0] == '!' || s[0] == ' ')
+                        s.erase(s.begin());
+
+                    close(tmpFd);
+                    char* argv[] = { (char*)processName.c_str(), NULL };
+
+                    int offset = char_search(Request + 5, '?');
+                    char** envp = new char*[7];
+                    envp[0] = new char[(int)strlen("SERVER_ADDR=127.0.0.1") + 1];
+                    strcpy(envp[0], "SERVER_ADDR=127.0.0.1");
+                    envp[1] = new char[(int)strlen("CONTENT_TYPE=text/plain") + 1];
+                    strcpy(envp[1], "CONTENT_TYPE=text/plain");
+                    envp[2] = new char[(int)strlen("SERVER_PROTOCOL=HTTP/1.0") + 1];
+                    strcpy(envp[2], "SERVER_PROTOCOL=HTTP/1.0");
+                    envp[3] = new char[(int)strlen("SCRIPT_NAME=") + 1 + strlen(Request + 5)];
+                    strcpy(envp[3], "SCRIPT_NAME=");
+                    strcat(envp[3], Request + 5);
+                    envp[4] = new char[(int)strlen("SERVER_PORT=") + 5];
+                    char* str_port = itoa(port);
+                    strcpy(envp[4], "SERVER_PORT=");
+                    strcat(envp[4], str_port);
+                    delete[] str_port;
+                    envp[5] = new char[(int)strlen("QUERY_STRING=") + 1
+                        + (int)strlen(Request + 6 + offset)];
+                    strcpy(envp[5], "QUERY_STRING=");
+                    strcat(envp[5], Request + 6 + offset);
+                    envp[6] = NULL;
+
+                    execve(s.c_str(), argv, envp);
+                    perror("execve() ");
+                    exit(1);
+                }
+                wait(&status);
+                close(Filefd);
+                if (WIFEXITED(status))
+                {
+                    if (WEXITSTATUS(status) == 0)
+                    {
+                        Filefd = open(name.c_str(), O_RDONLY, 0644);
+                        if (Filefd > 0)
+                        {
+                            char buf[BUFLEN];
+                            int len = 0;
+                            char* res = Response(200, "OK", false);
+                            send(Clientfd, res, strlen(res), 0);
+                            free(res);
+                            while ((len = read(Filefd, &buf, BUFLEN)))
+                            {
+                                send(Clientfd, buf, len, 0);
+                            }
+                            close(Filefd);
+                        }
+                        else
+                        {
+                            string error = "Ошибка открытия файла " + name;
+                            perror(error.c_str());
+                            char* res = Response(500, "", true);
+                            send(Clientfd, res, strlen(res), 0);
+                            free(res);
+                            file_res(Clientfd, "error/cgierr.html");
+                        }
+                    }
+                    else
+                    {
+                        string error = "CGI процесс завершился со статусом "
+                            + to_string(WEXITSTATUS(status));
+                        perror(error.c_str());
+                        char* res = Response(500, "", true);
+                        send(Clientfd, res, strlen(res), 0);
+                        free(res);
+                        file_res(Clientfd, "error/cgierr.html");
+                    }
+                }
+                else if (WIFSIGNALED(status))
+                {
+                    string error = "CGI процесс прислал сигнал " + to_string(WIFSIGNALED(status));
+                    perror(error.c_str());
+                    char* res = Response(500, "", true);
+                    send(Clientfd, res, strlen(res), 0);
+                    free(res);
+                    file_res(Clientfd, "error/cgierr.html");
+                }
+                remove(name.c_str());
+                chdir("./..");
+            }
+            else
+            {
+                int Filefd;
+                if (!home)
+                {
+                    Filefd = open(path, O_RDONLY);
+                }
+                if (Filefd < 0)
+                {
+                    char* res = Response(404, "", true);
+                    send(Clientfd, res, strlen(res), 0);
+                    free(res);
+                    file_res(Clientfd, "err404.html");
                 }
                 else
                 {
-                    std::cout << "notOK\n";
-                    char buf[512];
-                    strcpy(buf, "HTTP/1.0 500 notOK modelserver\nServer: Model HTTP "
-                                "Server/0.1\nAllow: GET\nConnection: keep-alive\nContent-type: "
-                                "text/html\nDate: ");
-                    time_t tm = time(NULL);
-                    strcat(buf, asctime(localtime(&tm)));
-                    strcat(buf, "\n\n");
-                    int len = strlen(buf);
-                    send(client.get_sock(), &buf, len, 0);
-                    int fd = open("cgierr.html", O_RDONLY);
-                    while ((len = read(fd, buf, BUFLEN)) > 0)
-                        send(client.get_sock(), &buf, len, 0);
-                    close(fd);
-                    char fname[11];
-                    strcpy(fname, "p");
-                    char* spid = itoa(pids[i]);
-                    strcat(fname, spid);
-                    delete[] spid;
-                    remove(fname);
+                    char buf[BUFLEN];
+                    int len = 0;
+                    char* res = Response(200, "OK", false);
+                    send(Clientfd, res, strlen(res), 0);
+                    free(res);
+                    if (!home)
+                        file_res(Clientfd, path);
+                    else
+                        file_res(Clientfd, "main.html");
                 }
-                pids.del(pids[i]);
-                shutdown(client.get_sock(), 1);
-                close(client.get_sock());
             }
         }
+        else
+        {
+            char* res = Response(501, "Not Implemented", true);
+            send(Clientfd, res, strlen(res), 0);
+            free(res);
+        }
+        shutdown(Clientfd, SHUT_RDWR);
+        close(Clientfd);
     }
+}
+
+
+Server::~Server()
+{
+    close(Serverfd);
+    close(Reqfd);
+}
+
+int main()
+{
+    Server server = Server("File_with_Requests.txt");
+    server.Run();
     return 0;
 }

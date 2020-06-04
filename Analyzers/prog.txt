@@ -1,9 +1,7 @@
-var a="avc";
-var b="avc";
-a+=b;
-var c=3;
-var d;
-d=c++;
-d=++c;
-
+var i="abc";
+var a;
+write(i);
+write(" ");
+write(a);
+getenv("QUERY_STRING");
 @
